@@ -21,6 +21,7 @@ import {
   List,
   Check,
 } from "lucide-react"
+import GoogleMapComponent from "./google-map"
 
 interface JourneyMapProps {
   soulProfile: any
@@ -37,104 +38,56 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
   const [globalChangePrompt, setGlobalChangePrompt] = useState("")
 
   useEffect(() => {
+    const generateJourney = async () => {
+      if (!soulProfile) return
+      setLoading(true)
+      try {
+        const response = await fetch("/api/generate-itinerary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ soulProfile }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to generate itinerary")
+        }
+
+        const { journey_blueprint } = await response.json()
+        setJourneyData(journey_blueprint)
+      } catch (error) {
+        console.error("Error fetching journey:", error)
+        // Handle error state in UI
+      } finally {
+        setLoading(false)
+      }
+    }
+
     generateJourney()
   }, [soulProfile])
 
   const calculateDuration = () => {
+    if (journeyData && journeyData.day_by_day_itinerary) {
+      return journeyData.day_by_day_itinerary.length
+    }
     if (soulProfile.practical.startDate && soulProfile.practical.endDate) {
       const start = new Date(soulProfile.practical.startDate)
       const end = new Date(soulProfile.practical.endDate)
       return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
     }
-    return 7
+    return 0
   }
 
-  const generateJourney = async () => {
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    const duration = calculateDuration()
-    const mockJourney = {
-      title: `${soulProfile.archetype.label}'s Sacred Journey`,
-      destination: soulProfile.practical.destination,
-      duration: duration,
-      totalBudget: calculateTotalBudget(duration, soulProfile.practical.budget),
-      days: generateDailyItinerary(soulProfile, duration),
-      mapLocations: generateMapLocations(soulProfile, duration),
-    }
-
-    setJourneyData(mockJourney)
-    setLoading(false)
-  }
-
-  const calculateTotalBudget = (duration: number, dailyBudget: number) => {
-    const baseDaily = dailyBudget / duration
-    const total = baseDaily * duration
-    return Math.round(total)
-  }
-
-  const generateMapLocations = (profile: any, duration: number) => {
-    const locations = [
-      { id: 1, name: "Sacred Temple", lat: 35.7148, lng: 139.7967, type: "spiritual", day: 1 },
-      { id: 2, name: "Mystic Garden", lat: 35.7058, lng: 139.7947, type: "nature", day: 1 },
-      { id: 3, name: "Cultural Center", lat: 35.7028, lng: 139.7917, type: "cultural", day: 2 },
-      { id: 4, name: "Adventure Hub", lat: 35.7098, lng: 139.8007, type: "adventure", day: 2 },
-      { id: 5, name: "Healing Sanctuary", lat: 35.7118, lng: 139.7887, type: "wellness", day: 3 },
-    ]
-    return locations.slice(0, duration * 2)
-  }
-
-  const generateDailyItinerary = (profile: any, duration: number) => {
-    const baseActivities = {
-      contemplative: [
-        { name: "Sunrise Meditation at Sacred Temple", type: "spiritual", cost: 0, duration: "1 hour", icon: "🧘" },
-        { name: "Traditional Tea Ceremony", type: "cultural", cost: 40, duration: "2 hours", icon: "🍵" },
-        { name: "Peaceful Garden Walk", type: "nature", cost: 0, duration: "1.5 hours", icon: "🌸" },
-      ],
-      spark: [
-        { name: "Adventure Sports Experience", type: "adventure", cost: 120, duration: "4 hours", icon: "🏄" },
-        { name: "Local Night Market Exploration", type: "cultural", cost: 50, duration: "3 hours", icon: "🏮" },
-        { name: "Street Art Discovery Tour", type: "cultural", cost: 30, duration: "2 hours", icon: "🎨" },
-      ],
-      seeker: [
-        { name: "Historical Museum Deep Dive", type: "educational", cost: 25, duration: "3 hours", icon: "🏛️" },
-        { name: "Local Artisan Workshop", type: "cultural", cost: 80, duration: "4 hours", icon: "🛠️" },
-        { name: "Philosophy Café Discussion", type: "intellectual", cost: 15, duration: "2 hours", icon: "💭" },
-      ],
-      creator: [
-        { name: "Art Studio Experience", type: "creative", cost: 60, duration: "3 hours", icon: "🎨" },
-        { name: "Photography Walking Tour", type: "creative", cost: 45, duration: "2.5 hours", icon: "📸" },
-        { name: "Local Music Performance", type: "cultural", cost: 35, duration: "2 hours", icon: "🎵" },
-      ],
-    }
-
-    const activities =
-      baseActivities[profile.archetype.value as keyof typeof baseActivities] || baseActivities.contemplative
-
-    return Array.from({ length: duration }, (_, index) => {
-      const currentDate = new Date(profile.practical.startDate)
-      currentDate.setDate(currentDate.getDate() + index)
-
-      return {
-        day: index + 1,
-        date: currentDate.toLocaleDateString(),
-        theme: `Day of ${["Wonder", "Discovery", "Connection", "Transformation", "Reflection", "Adventure", "Wisdom"][index % 7]}`,
-        activities: activities.slice(0, 2 + (index % 2)),
-        restaurants: [
-          { name: "Soul Food Sanctuary", type: "Local Cuisine", rating: 4.8, cost: 45, icon: "🍜" },
-          { name: "Mystic Garden Café", type: "Vegetarian", rating: 4.6, cost: 30, icon: "🌱" },
-        ],
-        mysticalNote: [
-          "Today your soul seeks inner peace and clarity",
-          "Adventure calls to your wild spirit today",
-          "Deep connections await in unexpected places",
-          "Your creative energy flows strongest today",
-          "Wisdom reveals itself in quiet moments",
-          "Transformation begins with a single step",
-          "The universe conspires to guide your path",
-        ][index % 7],
-      }
-    })
+  const getMapLocations = () => {
+    if (!journeyData || !journeyData.day_by_day_itinerary) return []
+    return journeyData.day_by_day_itinerary.flatMap((day: any) =>
+      day.locations.map((loc: any) => ({
+        id: `${day.day}-${loc.name}`,
+        name: loc.name,
+        lat: loc.coordinates.lat,
+        lng: loc.coordinates.lng,
+        day: day.day,
+      }))
+    )
   }
 
   const handleDaySelect = (dayNumber: number) => {
@@ -172,7 +125,7 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
     }
   }
 
-  if (loading) {
+  if (loading || !journeyData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
         <Card className="w-full max-w-md border border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl">
@@ -183,7 +136,9 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
             </div>
             <h3 className="text-xl font-semibold mb-2 text-slate-100">Weaving Your Sacred Journey</h3>
             <p className="text-slate-300">The cosmic forces are aligning your perfect itinerary...</p>
-            <div className="mt-4 text-sm text-purple-200">✨ Channeling {soulProfile.archetype.label} energy ✨</div>
+            <div className="mt-4 text-sm text-purple-200">
+              ✨ Channeling {soulProfile?.archetype?.label || "your"} energy ✨
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -204,14 +159,14 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
                   <div className="flex items-center gap-4 text-slate-300">
                     <span className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {journeyData.destination}
+                      {soulProfile.practical.destination}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      {journeyData.duration} days
+                      {calculateDuration()} days
                     </span>
                     <span className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />${journeyData.totalBudget}
+                      <DollarSign className="h-4 w-4" />${soulProfile.practical.budget}
                     </span>
                   </div>
                 </div>
@@ -272,7 +227,7 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
                 </div>
                 <div className="pt-4 border-t border-white/10">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-emerald-400 mb-1">${journeyData.totalBudget}</div>
+                    <div className="text-2xl font-bold text-emerald-400 mb-1">${soulProfile.practical.budget}</div>
                     <p className="text-xs text-slate-400">Total Journey Budget</p>
                   </div>
                 </div>
@@ -296,7 +251,7 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
 
               <TabsContent value="journey" className="space-y-6">
                 {/* Daily Journey */}
-                {journeyData.days.map((day: any) => (
+                {journeyData.day_by_day_itinerary.map((day: any, dayIndex: number) => (
                   <Card
                     key={day.day}
                     className={`border border-white/10 shadow-xl bg-white/5 backdrop-blur-xl transition-all duration-300 ${
@@ -313,12 +268,12 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
                             <CardTitle className="text-xl text-slate-100">
                               Day {day.day} - {day.theme}
                             </CardTitle>
-                            <p className="text-slate-300 text-sm">{day.date}</p>
+                            <p className="text-slate-300 text-sm">{new Date(new Date(soulProfile.practical.startDate).setDate(new Date(soulProfile.practical.startDate).getDate() + dayIndex)).toLocaleDateString()}</p>
                           </div>
                         </div>
                         <Badge variant="outline" className="border-purple-300 text-purple-200 bg-purple-900/20">
                           <Sparkles className="h-3 w-3 mr-1" />
-                          {day.mysticalNote}
+                          {day.theme}
                         </Badge>
                       </div>
                     </CardHeader>
@@ -332,29 +287,30 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
                             Sacred Activities
                           </h4>
                           <div className="grid md:grid-cols-2 gap-4">
-                            {day.activities.map((activity: any, index: number) => (
+                            {day.locations.map((location: any, index: number) => (
                               <div
                                 key={index}
                                 className="p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm"
                               >
                                 <div className="flex items-start gap-3">
-                                  <span className="text-2xl">{activity.icon}</span>
+                                  <span className="text-2xl">{location.category.split(" ")[0]}</span>
                                   <div className="flex-1">
-                                    <h5 className="font-semibold text-slate-100">{activity.name}</h5>
+                                    <h5 className="font-semibold text-slate-100">{location.name}</h5>
                                     <div className="flex items-center gap-4 mt-2 text-sm text-slate-300">
                                       <span className="flex items-center gap-1">
-                                        <Clock className="h-3 w-3" />
-                                        {activity.duration}
+                                        <MapPin className="h-3 w-3" />
+                                        {location.transport}
                                       </span>
                                       <span className="flex items-center gap-1">
-                                        <DollarSign className="h-3 w-3" />${activity.cost}
+                                        <DollarSign className="h-3 w-3" />
+                                        {location.cost_estimate}
                                       </span>
                                     </div>
                                     <Badge
                                       variant="secondary"
                                       className="mt-2 text-xs bg-purple-900/30 text-purple-200 border-purple-400/20"
                                     >
-                                      {activity.type}
+                                      {location.vibe}
                                     </Badge>
                                     <div className="flex gap-2 mt-3">
                                       <Button
@@ -374,39 +330,6 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
                                           ? "Completed"
                                           : "Mark Complete"}
                                       </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <Separator className="bg-white/10" />
-
-                        {/* Restaurants */}
-                        <div>
-                          <h4 className="font-semibold mb-3 flex items-center gap-2 text-slate-200">
-                            <Star className="h-4 w-4" />
-                            Nourishment for the Soul
-                          </h4>
-                          <div className="grid md:grid-cols-2 gap-4">
-                            {day.restaurants.map((restaurant: any, index: number) => (
-                              <div
-                                key={index}
-                                className="p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span className="text-2xl">{restaurant.icon}</span>
-                                  <div className="flex-1">
-                                    <h5 className="font-semibold text-slate-100">{restaurant.name}</h5>
-                                    <p className="text-sm text-slate-300">{restaurant.type}</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <div className="flex items-center gap-1">
-                                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                                        <span className="text-sm text-slate-300">{restaurant.rating}</span>
-                                      </div>
-                                      <span className="text-sm text-slate-300">${restaurant.cost}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -470,59 +393,7 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
                   </CardHeader>
                   <CardContent>
                     <div className="w-full h-96 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-white/10 relative overflow-hidden">
-                      {/* 2D Map Grid */}
-                      <div className="absolute inset-0 opacity-20">
-                        {Array.from({ length: 20 }).map((_, i) => (
-                          <div
-                            key={`h-${i}`}
-                            className="absolute w-full h-px bg-slate-600"
-                            style={{ top: `${i * 5}%` }}
-                          />
-                        ))}
-                        {Array.from({ length: 20 }).map((_, i) => (
-                          <div
-                            key={`v-${i}`}
-                            className="absolute h-full w-px bg-slate-600"
-                            style={{ left: `${i * 5}%` }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Roads/Paths */}
-                      <svg className="absolute inset-0 w-full h-full">
-                        <path
-                          d="M 50 50 Q 150 100 250 150 T 450 200 Q 500 250 400 300"
-                          stroke="rgba(147, 51, 234, 0.6)"
-                          strokeWidth="3"
-                          fill="none"
-                          strokeDasharray="5,5"
-                        />
-                      </svg>
-
-                      {/* Location Pins with Day Numbers */}
-                      {journeyData.mapLocations.map((location: any, index: number) => (
-                        <div
-                          key={location.id}
-                          className="absolute group cursor-pointer"
-                          style={{
-                            left: `${15 + index * 12}%`,
-                            top: `${20 + (index % 4) * 15}%`,
-                          }}
-                        >
-                          <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg hover:scale-110 transition-transform border-2 border-white/30">
-                            {location.day}
-                          </div>
-                          <div className="absolute top-12 left-1/2 transform -translate-x-1/2 bg-slate-900/90 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/20">
-                            {location.name}
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Destination Label */}
-                      <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20">
-                        <h3 className="text-white font-semibold">{journeyData.destination}</h3>
-                        <p className="text-slate-300 text-xs">{journeyData.duration} Day Journey</p>
-                      </div>
+                      <GoogleMapComponent mapLocations={getMapLocations()} />
                     </div>
                   </CardContent>
                 </Card>
