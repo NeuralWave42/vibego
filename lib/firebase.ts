@@ -1,19 +1,32 @@
+// Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
 
-// Firebase configuration - replace with your actual config
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  apiKey: "AIzaSyAg8nbBcU-IeREwLnACaXLcbm4685UFgbQ",
+  authDomain: "vibego-75bbf.firebaseapp.com",
+  projectId: "vibego-75bbf",
+  storageBucket: "vibego-75bbf.firebasestorage.app",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize Analytics - in a try/catch to handle server-side rendering
+let analytics = null;
+if (typeof window !== 'undefined') {
+  try {
+    analytics = getAnalytics(app);
+  } catch (error) {
+    console.error('Analytics initialization error:', error);
+  }
+}
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
@@ -47,12 +60,10 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     
-    // The profile creation is handled in the AuthContext, so this is not needed here.
-    // if (displayName) {
-    //   await updateDoc(doc(db, 'users', result.user.uid), {
-    //     displayName: displayName
-    //   });
-    // }
+    // If displayName is provided, create or update the user profile
+    if (displayName) {
+      await createUserProfile(result.user.uid, { displayName });
+    }
     
     return { user: result.user, error: null };
   } catch (error: any) {
@@ -133,4 +144,4 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-export default app; 
+export default app;

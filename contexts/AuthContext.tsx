@@ -27,6 +27,7 @@ interface UserProfile {
   bio?: string;
   location?: string;
   preferences?: any;
+  soulProfile?: any;
 }
 
 // Define the authentication context interface

@@ -3,9 +3,16 @@
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const { currentUser, userProfile, logout, loading } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/auth/login');
+  };
 
   return (
     <nav className="bg-white shadow-md">
@@ -24,7 +31,7 @@ export default function Navbar() {
                   <Link href="/auth/profile">
                     <Button variant="ghost">Profile</Button>
                   </Link>
-                  <Button onClick={logout} variant="destructive">
+                  <Button onClick={handleLogout} variant="destructive">
                     Logout
                   </Button>
                 </>
