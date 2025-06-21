@@ -21,15 +21,36 @@ import {
   List,
   Check,
 } from "lucide-react"
+import { oracleSteps } from "@/lib/oracle-data"
+
+// We need a small utility to create an API client
+// In a real app, this would be in its own file, e.g., lib/api.ts
+const api = {
+  generateItinerary: async (answers: any) => {
+    const response = await fetch('/api/generate-itinerary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ error: "Unknown API error" }));
+      throw new Error(errorBody.error || 'Failed to fetch itinerary');
+    }
+
+    return response.json();
+  }
+}
 
 interface JourneyMapProps {
-  soulProfile: any
+  soulProfile: any // This now contains all the answers from the oracle
   onComplete: (blueprint: any) => void
 }
 
 export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps) {
   const [journeyData, setJourneyData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState("journey")
@@ -37,105 +58,22 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
   const [globalChangePrompt, setGlobalChangePrompt] = useState("")
 
   useEffect(() => {
+    const generateJourney = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await api.generateItinerary(soulProfile)
+        setJourneyData(data.itinerary) // The API returns { itinerary: { ... } }
+      } catch (err: any) {
+        console.error("Failed to generate journey:", err)
+        setError(err.message || "A cosmic disturbance occurred while weaving your journey.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
     generateJourney()
   }, [soulProfile])
-
-  const calculateDuration = () => {
-    if (soulProfile.practical.startDate && soulProfile.practical.endDate) {
-      const start = new Date(soulProfile.practical.startDate)
-      const end = new Date(soulProfile.practical.endDate)
-      return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    }
-    return 7
-  }
-
-  const generateJourney = async () => {
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    const duration = calculateDuration()
-    const mockJourney = {
-      title: `${soulProfile.archetype.label}'s Sacred Journey`,
-      destination: soulProfile.practical.destination,
-      duration: duration,
-      totalBudget: calculateTotalBudget(duration, soulProfile.practical.budget),
-      days: generateDailyItinerary(soulProfile, duration),
-      mapLocations: generateMapLocations(soulProfile, duration),
-    }
-
-    setJourneyData(mockJourney)
-    setLoading(false)
-  }
-
-  const calculateTotalBudget = (duration: number, dailyBudget: number) => {
-    const baseDaily = dailyBudget / duration
-    const total = baseDaily * duration
-    return Math.round(total)
-  }
-
-  const generateMapLocations = (profile: any, duration: number) => {
-    const locations = [
-      { id: 1, name: "Sacred Temple", lat: 35.7148, lng: 139.7967, type: "spiritual", day: 1 },
-      { id: 2, name: "Mystic Garden", lat: 35.7058, lng: 139.7947, type: "nature", day: 1 },
-      { id: 3, name: "Cultural Center", lat: 35.7028, lng: 139.7917, type: "cultural", day: 2 },
-      { id: 4, name: "Adventure Hub", lat: 35.7098, lng: 139.8007, type: "adventure", day: 2 },
-      { id: 5, name: "Healing Sanctuary", lat: 35.7118, lng: 139.7887, type: "wellness", day: 3 },
-    ]
-    return locations.slice(0, duration * 2)
-  }
-
-  const generateDailyItinerary = (profile: any, duration: number) => {
-    const baseActivities = {
-      contemplative: [
-        { name: "Sunrise Meditation at Sacred Temple", type: "spiritual", cost: 0, duration: "1 hour", icon: "🧘" },
-        { name: "Traditional Tea Ceremony", type: "cultural", cost: 40, duration: "2 hours", icon: "🍵" },
-        { name: "Peaceful Garden Walk", type: "nature", cost: 0, duration: "1.5 hours", icon: "🌸" },
-      ],
-      spark: [
-        { name: "Adventure Sports Experience", type: "adventure", cost: 120, duration: "4 hours", icon: "🏄" },
-        { name: "Local Night Market Exploration", type: "cultural", cost: 50, duration: "3 hours", icon: "🏮" },
-        { name: "Street Art Discovery Tour", type: "cultural", cost: 30, duration: "2 hours", icon: "🎨" },
-      ],
-      seeker: [
-        { name: "Historical Museum Deep Dive", type: "educational", cost: 25, duration: "3 hours", icon: "🏛️" },
-        { name: "Local Artisan Workshop", type: "cultural", cost: 80, duration: "4 hours", icon: "🛠️" },
-        { name: "Philosophy Café Discussion", type: "intellectual", cost: 15, duration: "2 hours", icon: "💭" },
-      ],
-      creator: [
-        { name: "Art Studio Experience", type: "creative", cost: 60, duration: "3 hours", icon: "🎨" },
-        { name: "Photography Walking Tour", type: "creative", cost: 45, duration: "2.5 hours", icon: "📸" },
-        { name: "Local Music Performance", type: "cultural", cost: 35, duration: "2 hours", icon: "🎵" },
-      ],
-    }
-
-    const activities =
-      baseActivities[profile.archetype.value as keyof typeof baseActivities] || baseActivities.contemplative
-
-    return Array.from({ length: duration }, (_, index) => {
-      const currentDate = new Date(profile.practical.startDate)
-      currentDate.setDate(currentDate.getDate() + index)
-
-      return {
-        day: index + 1,
-        date: currentDate.toLocaleDateString(),
-        theme: `Day of ${["Wonder", "Discovery", "Connection", "Transformation", "Reflection", "Adventure", "Wisdom"][index % 7]}`,
-        activities: activities.slice(0, 2 + (index % 2)),
-        restaurants: [
-          { name: "Soul Food Sanctuary", type: "Local Cuisine", rating: 4.8, cost: 45, icon: "🍜" },
-          { name: "Mystic Garden Café", type: "Vegetarian", rating: 4.6, cost: 30, icon: "🌱" },
-        ],
-        mysticalNote: [
-          "Today your soul seeks inner peace and clarity",
-          "Adventure calls to your wild spirit today",
-          "Deep connections await in unexpected places",
-          "Your creative energy flows strongest today",
-          "Wisdom reveals itself in quiet moments",
-          "Transformation begins with a single step",
-          "The universe conspires to guide your path",
-        ][index % 7],
-      }
-    })
-  }
 
   const handleDaySelect = (dayNumber: number) => {
     setSelectedDay(selectedDay === dayNumber ? null : dayNumber)
@@ -163,11 +101,15 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
   }
 
   const getUserPreferencesDescription = () => {
+    // We need to find the full archetype object to get the description
+    const archetypeInfo = oracleSteps.find(step => step.id === 'archetype')?.options?.find(o => o.value === soulProfile.archetype);
+    const moodInfo = oracleSteps.find(step => step.id === 'mood')?.options?.find(o => o.value === soulProfile.mood);
+
     return {
-      archetype: `${soulProfile.archetype.emoji} ${soulProfile.archetype.label}: ${soulProfile.archetype.description}`,
-      mood: `${soulProfile.mood.emoji} ${soulProfile.mood.label}: ${soulProfile.mood.description}`,
-      philosophy: `${soulProfile.philosophy}`,
-      intention: `${soulProfile.intention}`,
+      archetype: `${archetypeInfo?.emoji || '✨'} ${archetypeInfo?.label || 'Unknown'}: ${archetypeInfo?.description || ''}`,
+      mood: `${moodInfo?.emoji || '🌀'} ${moodInfo?.label || 'Unknown'}: ${moodInfo?.description || ''}`,
+      philosophy: soulProfile.philosophy,
+      intention: soulProfile.intention,
       destinations: soulProfile.destinations?.join(", ") || "Various experiences",
     }
   }
@@ -183,11 +125,43 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
             </div>
             <h3 className="text-xl font-semibold mb-2 text-slate-100">Weaving Your Sacred Journey</h3>
             <p className="text-slate-300">The cosmic forces are aligning your perfect itinerary...</p>
-            <div className="mt-4 text-sm text-purple-200">✨ Channeling {soulProfile.archetype.label} energy ✨</div>
+            {soulProfile.archetype && <div className="mt-4 text-sm text-purple-200">✨ Channeling {soulProfile.archetype} energy ✨</div>}
           </CardContent>
         </Card>
       </div>
     )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl">
+          <CardContent className="text-center py-12">
+            <div className="mb-6">
+              <Sparkles className="h-16 w-16 text-red-400 mx-auto mb-4" />
+            </div>
+            <h3 className="text-2xl font-semibold mb-2 text-slate-100">Journey Generation Failed</h3>
+            <p className="text-slate-300 mb-6 max-w-sm mx-auto">{error}</p>
+            <Button
+              onClick={() => window.location.reload()}
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+  
+  if (!journeyData) {
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+            <p className="text-white">No journey data available.</p>
+        </div>
+    );
   }
 
   return (
