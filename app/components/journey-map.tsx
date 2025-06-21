@@ -31,37 +31,40 @@ interface JourneyMapProps {
 export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps) {
   const [journeyData, setJourneyData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState("journey")
   const [completedActivities, setCompletedActivities] = useState<Set<string>>(new Set())
   const [globalChangePrompt, setGlobalChangePrompt] = useState("")
 
-  useEffect(() => {
-    const generateJourney = async () => {
-      if (!soulProfile) return
-      setLoading(true)
-      try {
-        const response = await fetch("/api/generate-itinerary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ soulProfile }),
-        })
+  const generateJourney = async () => {
+    if (!soulProfile) return
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/generate-itinerary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ soulProfile }),
+      })
 
-        if (!response.ok) {
-          throw new Error("Failed to generate itinerary")
-        }
-
-        const { journey_blueprint } = await response.json()
-        setJourneyData(journey_blueprint)
-      } catch (error) {
-        console.error("Error fetching journey:", error)
-        // Handle error state in UI
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to generate itinerary from server")
       }
-    }
 
+      const { journey_blueprint } = await response.json()
+      setJourneyData(journey_blueprint)
+    } catch (err: any) {
+      console.error("Error fetching journey:", err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     generateJourney()
   }, [soulProfile])
 
@@ -125,7 +128,7 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
     }
   }
 
-  if (loading || !journeyData) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
         <Card className="w-full max-w-md border border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl">
@@ -141,6 +144,36 @@ export default function JourneyMap({ soulProfile, onComplete }: JourneyMapProps)
             </div>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <Card className="w-full max-w-md border border-red-500/50 shadow-2xl bg-white/5 backdrop-blur-xl">
+          <CardHeader>
+            <CardTitle className="text-red-400 text-center">Failed to Generate Journey</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-6">
+            <p className="text-slate-300 mb-6">{error}</p>
+            <Button
+              onClick={generateJourney}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!journeyData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <p>No journey data available. Please try again.</p>
       </div>
     )
   }

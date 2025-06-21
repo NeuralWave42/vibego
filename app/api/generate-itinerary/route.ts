@@ -33,16 +33,28 @@ const JourneyBlueprintSchema = z.object({
 export async function POST(request: Request) {
   try {
     const { soulProfile } = await request.json()
+    console.log("Generating itinerary for:", soulProfile.practical.destination)
 
     // Step 1: Fetch real-world places from Google Places API
     const interests = soulProfile.destinations.join(" OR ")
+    console.log("Querying Google Places for:", interests)
+
     const { data } = await gmaps.textSearch({
       params: {
         query: `${interests} in ${soulProfile.practical.destination}`,
-        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+        key: process.env.GOOGLE_MAPS_SERVER_API_KEY!,
         maxprice: 4,
       },
     })
+
+    console.log(`Found ${data.results.length} places from Google.`);
+
+    if (data.results.length === 0) {
+      return Response.json(
+        { error: "Could not find any locations matching your interests. Try adjusting your quiz answers." },
+        { status: 404 }
+      )
+    }
 
     const places = data.results.map((place) => ({
       name: place.name,
@@ -54,6 +66,7 @@ export async function POST(request: Request) {
     }))
 
     // Step 2: Use AI to curate the fetched places into an itinerary
+    console.log("Sending places to AI for curation...")
     const prompt = `
       You are a creative travel agent. Based on the user's soul profile and a list of real-world locations, create a personalized travel itinerary.
       
@@ -88,6 +101,7 @@ export async function POST(request: Request) {
       prompt,
     })
 
+    console.log("AI curation complete. Sending itinerary to user.");
     return Response.json(object)
   } catch (error) {
     console.error("Error generating itinerary:", error)
