@@ -311,87 +311,228 @@ export default function ItineraryDisplay({
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="itinerary" className="space-y-6">
+          <TabsContent value="itinerary" className="space-y-8">
             {itinerary.dailyItinerary.map((day: any) => {
               const colorScheme = DAY_COLOR_SCHEMES[(day.day - 1) % DAY_COLOR_SCHEMES.length];
               return (
-                <Card key={day.day} className="border-0 shadow-lg bg-white/90 backdrop-blur-sm overflow-hidden">
-                  <CardHeader className="bg-gray-50/50">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className={`w-10 h-10 ${colorScheme.circle} rounded-full flex items-center justify-center text-white font-bold`}>
+                <Card 
+                  key={day.day} 
+                  className={`border-0 shadow-xl ${colorScheme.cardBg} ${colorScheme.cardBorder} ${colorScheme.shadow} overflow-hidden transform transition-all duration-500 hover:scale-[1.01] hover:${colorScheme.glow} group`}
+                >
+                  {/* Mystical Header with Animated Background */}
+                  <CardHeader className={`relative bg-gradient-to-r ${colorScheme.gradient} text-white overflow-hidden`}>
+                    {/* Animated Background Pattern */}
+                    <div className="absolute inset-0 opacity-20">
+                      <div className={`absolute top-2 left-4 w-2 h-2 bg-white rounded-full ${colorScheme.mystical}`}></div>
+                      <div className={`absolute top-6 right-8 w-1 h-1 bg-white rounded-full animate-pulse delay-300`}></div>
+                      <div className={`absolute bottom-4 left-1/3 w-1.5 h-1.5 bg-white rounded-full animate-ping delay-700`}></div>
+                      <div className={`absolute bottom-2 right-1/4 w-1 h-1 bg-white rounded-full ${colorScheme.mystical} delay-500`}></div>
+                    </div>
+                    
+                    <CardTitle className="flex items-center gap-4 relative z-10">
+                      <div className={`w-12 h-12 ${colorScheme.circle} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg transform transition-transform group-hover:scale-110 group-hover:rotate-12`}>
                         {day.day}
                       </div>
-                      <div>
-                        <span className="text-xl">Day {day.day}</span>
-                        <p className="text-sm text-gray-600 font-normal">{day.theme}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xl font-bold">Day {day.day}</span>
+                          <span className="text-xs bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                            {colorScheme.theme}
+                          </span>
+                        </div>
+                        <p className="text-sm text-white/90 font-medium">{day.theme}</p>
+                      </div>
+                      
+                      {/* Progress Indicator */}
+                      <div className="hidden sm:flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="text-xs text-white/80">Progress</div>
+                          <div className="text-sm font-bold">
+                            {Math.round(((day.activities.filter((_: any, index: number) => 
+                              completedItems.has(`item-${day.day}-${index}`)
+                            ).length + day.restaurants.filter((_: any, index: number) => 
+                              completedItems.has(`item-${day.day}-${day.activities.length + index}`)
+                            ).length) / (day.activities.length + day.restaurants.length)) * 100)}%
+                          </div>
+                        </div>
+                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                          <Sparkles className="w-5 h-5 text-white animate-spin" />
+                        </div>
                       </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 sm:p-6 space-y-6">
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
-                        <Navigation className="h-4 w-4" />
-                        Activities
+
+                  <CardContent className="p-6 space-y-8 relative">
+                    {/* Decorative Elements */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-20"></div>
+                    
+                    {/* Activities Section */}
+                    <div className="transform transition-all duration-300 hover:translate-x-1">
+                      <h4 className="font-bold mb-4 flex items-center gap-3 text-gray-800">
+                        <div className={`p-2 rounded-lg bg-gradient-to-r ${colorScheme.gradient} text-white shadow-md`}>
+                          <Navigation className="h-4 w-4" />
+                        </div>
+                        <span className="text-lg">Quest Activities</span>
+                        <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
+                        <span className="text-sm text-gray-500">
+                          {day.activities.filter((_: any, index: number) => 
+                            completedItems.has(`item-${day.day}-${index}`)
+                          ).length} / {day.activities.length} completed
+                        </span>
                       </h4>
-                      <div className="grid gap-3 sm:gap-4">
+                      
+                      {/* Grid Layout for Activities */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {day.activities.map((activity: any, index: number) => {
                            const itemId = `item-${day.day}-${index}`;
                            const isCompleted = completedItems.has(itemId);
                             return (
-                             <div key={itemId} className="p-3 sm:p-4 border rounded-lg hover:shadow-md transition-all bg-white relative">
-                               <div className={`transition-opacity ${isCompleted ? 'opacity-50' : 'opacity-100'}`}>
+                             <div 
+                               key={itemId} 
+                               className={`group/item p-4 border-2 rounded-xl transition-all duration-300 bg-white/70 backdrop-blur-sm relative overflow-hidden
+                                 ${isCompleted 
+                                   ? 'border-green-300 bg-green-50/70 shadow-green-200/50 ring-2 ring-green-200/30' 
+                                   : `border-gray-200 hover:border-${colorScheme.cardBorder.split('-')[1]}-300 hover:shadow-lg`
+                                 } 
+                                 transform hover:scale-[1.02] hover:-translate-y-1 cursor-pointer`}
+                               onClick={() => onToggleComplete(itemId)}
+                             >
+                               {/* Completion Glow Effect */}
+                               {isCompleted && (
+                                 <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-emerald-400/10 animate-pulse"></div>
+                               )}
+                               
+                               <div className={`transition-all duration-300 relative z-10 ${isCompleted ? 'opacity-75' : 'opacity-100'}`}>
                                  <div className="flex items-start gap-3">
-                                   <span className="text-xl sm:text-2xl mt-1 flex-shrink-0">{activity.emoji}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <h5 className="font-semibold text-sm sm:text-base">{activity.name}</h5>
-                                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{activity.description}</p>
-                                     </div>
+                                   <div className="relative flex-shrink-0">
+                                     <span className={`text-2xl sm:text-3xl block transform transition-transform group-hover/item:scale-110 ${isCompleted ? 'grayscale' : ''}`}>
+                                       {activity.emoji}
+                                     </span>
+                                     {isCompleted && (
+                                       <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center animate-bounce">
+                                         <CheckCircle2 className="w-3 h-3 text-white" />
+                                       </div>
+                                     )}
                                    </div>
-                                  </div>
-                                 <button
-                                   onClick={() => onToggleComplete(itemId)}
-                                   className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                                   aria-label={isCompleted ? 'Mark as not completed' : 'Mark as completed'}
-                                 >
-                                   <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${isCompleted ? 'text-green-500 fill-green-100' : 'text-gray-300 hover:text-gray-400'}`} />
-                                 </button>
+                                   <div className="flex-1 min-w-0">
+                                     <h5 className={`font-bold text-sm sm:text-base mb-2 transition-all ${
+                                       isCompleted 
+                                         ? 'text-green-700 line-through' 
+                                         : 'text-gray-800 group-hover/item:text-gray-900'
+                                     }`}>
+                                       {activity.name}
+                                     </h5>
+                                     <p className={`text-xs sm:text-sm leading-relaxed transition-all ${
+                                       isCompleted ? 'text-green-600' : 'text-gray-600'
+                                     }`}>
+                                       {activity.description}
+                                     </p>
+                                   </div>
+                                 </div>
                                 </div>
+                                
+                                {/* Animated Check Button */}
+                                <div className="absolute top-3 right-3">
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                                    isCompleted 
+                                      ? 'bg-green-500 border-green-500 scale-110' 
+                                      : 'border-gray-300 hover:border-gray-400 hover:scale-110 bg-white'
+                                  }`}>
+                                    {isCompleted && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                  </div>
+                                </div>
+                               </div>
                               )
                         })}
                       </div>
                     </div>
 
-                    <Separator />
+                    {/* Mystical Divider */}
+                    <div className="flex items-center justify-center py-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-12 h-px bg-gradient-to-r ${colorScheme.gradient}`}></div>
+                        <Star className={`w-4 h-4 text-gray-400 ${colorScheme.mystical}`} />
+                        <div className={`w-12 h-px bg-gradient-to-l ${colorScheme.gradient}`}></div>
+                      </div>
+                    </div>
 
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
-                        <Utensils className="h-4 w-4" />
-                        Dining
+                    {/* Dining Section */}
+                    <div className="transform transition-all duration-300 hover:translate-x-1">
+                      <h4 className="font-bold mb-4 flex items-center gap-3 text-gray-800">
+                        <div className={`p-2 rounded-lg bg-gradient-to-r ${colorScheme.gradient} text-white shadow-md`}>
+                          <Utensils className="h-4 w-4" />
+                        </div>
+                        <span className="text-lg">Culinary Discoveries</span>
+                        <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
+                        <span className="text-sm text-gray-500">
+                          {day.restaurants.filter((_: any, index: number) => 
+                            completedItems.has(`item-${day.day}-${day.activities.length + index}`)
+                          ).length} / {day.restaurants.length} completed
+                        </span>
                       </h4>
-                      <div className="grid gap-3 sm:gap-4">
+                      
+                      {/* Grid Layout for Restaurants */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {day.restaurants.map((restaurant: any, index: number) => {
                            const activityCount = day.activities.length;
                            const itemId = `item-${day.day}-${activityCount + index}`;
                            const isCompleted = completedItems.has(itemId);
                             return (
-                             <div key={itemId} className="p-3 sm:p-4 border rounded-lg hover:shadow-md transition-all bg-white relative">
-                               <div className={`transition-opacity ${isCompleted ? 'opacity-50' : 'opacity-100'}`}>
+                             <div 
+                               key={itemId} 
+                               className={`group/item p-4 border-2 rounded-xl transition-all duration-300 bg-white/70 backdrop-blur-sm relative overflow-hidden
+                                 ${isCompleted 
+                                   ? 'border-green-300 bg-green-50/70 shadow-green-200/50 ring-2 ring-green-200/30' 
+                                   : `border-gray-200 hover:border-${colorScheme.cardBorder.split('-')[1]}-300 hover:shadow-lg`
+                                 } 
+                                 transform hover:scale-[1.02] hover:-translate-y-1 cursor-pointer`}
+                               onClick={() => onToggleComplete(itemId)}
+                             >
+                               {/* Completion Glow Effect */}
+                               {isCompleted && (
+                                 <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-emerald-400/10 animate-pulse"></div>
+                               )}
+                               
+                               <div className={`transition-all duration-300 relative z-10 ${isCompleted ? 'opacity-75' : 'opacity-100'}`}>
                                  <div className="flex items-start gap-3">
-                                   <span className="text-xl sm:text-2xl mt-1 flex-shrink-0">{restaurant.emoji}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <h5 className="font-semibold text-sm sm:text-base">{restaurant.name}</h5>
-                                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{restaurant.description}</p>
-                                     </div>
+                                   <div className="relative flex-shrink-0">
+                                     <span className={`text-2xl sm:text-3xl block transform transition-transform group-hover/item:scale-110 ${isCompleted ? 'grayscale' : ''}`}>
+                                       {restaurant.emoji}
+                                     </span>
+                                     {isCompleted && (
+                                       <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center animate-bounce">
+                                         <CheckCircle2 className="w-3 h-3 text-white" />
+                                       </div>
+                                     )}
                                    </div>
-                                  </div>
-                                 <button
-                                   onClick={() => onToggleComplete(itemId)}
-                                   className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                                   aria-label={isCompleted ? 'Mark as not completed' : 'Mark as completed'}
-                                 >
-                                   <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${isCompleted ? 'text-green-500 fill-green-100' : 'text-gray-300 hover:text-gray-400'}`} />
-                                 </button>
+                                   <div className="flex-1 min-w-0">
+                                     <h5 className={`font-bold text-sm sm:text-base mb-2 transition-all ${
+                                       isCompleted 
+                                         ? 'text-green-700 line-through' 
+                                         : 'text-gray-800 group-hover/item:text-gray-900'
+                                     }`}>
+                                       {restaurant.name}
+                                     </h5>
+                                     <p className={`text-xs sm:text-sm leading-relaxed transition-all ${
+                                       isCompleted ? 'text-green-600' : 'text-gray-600'
+                                     }`}>
+                                       {restaurant.description}
+                                     </p>
+                                   </div>
+                                 </div>
                                 </div>
+                                
+                                {/* Animated Check Button */}
+                                <div className="absolute top-3 right-3">
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                                    isCompleted 
+                                      ? 'bg-green-500 border-green-500 scale-110' 
+                                      : 'border-gray-300 hover:border-gray-400 hover:scale-110 bg-white'
+                                  }`}>
+                                    {isCompleted && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                  </div>
+                                </div>
+                               </div>
                               )
                         })}
                       </div>
@@ -405,10 +546,43 @@ export default function ItineraryDisplay({
           <TabsContent value="map">
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Journey Map View</CardTitle>
-                <CardDescription>A bird&apos;s eye view of your spiritual quest.</CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      Journey Map View
+                    </CardTitle>
+                    <CardDescription>Discover your remaining adventures on the map.</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-1 px-3 py-1 bg-blue-100 rounded-full">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span>Remaining</span>
+                    </div>
+                    <div className="flex items-center gap-1 px-3 py-1 bg-green-100 rounded-full">
+                      <CheckCircle2 className="w-3 h-3 text-green-600" />
+                      <span>Completed</span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-800">
+                    <Navigation className="w-4 h-4" />
+                    <span className="font-medium">
+                      {(() => {
+                        const totalItems = itinerary.dailyItinerary.reduce((total: number, day: any) => 
+                          total + day.activities.length + day.restaurants.length, 0
+                        );
+                        const remainingItems = totalItems - completedItems.size;
+                        return remainingItems === 0 
+                          ? "🎉 All adventures completed! Your journey is complete!"
+                          : `${remainingItems} adventure${remainingItems === 1 ? '' : 's'} remaining on your quest`;
+                      })()}
+                    </span>
+                  </div>
+                </div>
                 <JourneyMapView itinerary={itinerary} completedItems={completedItems} />
               </CardContent>
             </Card>
@@ -451,6 +625,30 @@ export default function ItineraryDisplay({
                 <Share2 className="mr-2 h-4 w-4" />
                 Share
               </Button>
+            </div>
+            
+            {/* Navigation Actions */}
+            <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 mt-6 pt-6 border-t border-gray-200">
+              {onCreateNew && (
+                <Button
+                  variant="outline"
+                  onClick={onCreateNew}
+                  className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create New Journey
+                </Button>
+              )}
+              {onBack && (
+                <Button
+                  variant="outline"
+                  onClick={onBack}
+                  className="hover:bg-gray-50 hover:border-gray-300"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Quiz
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
