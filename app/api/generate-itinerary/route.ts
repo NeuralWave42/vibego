@@ -13,15 +13,15 @@ const ItinerarySchema = z.object({
     theme: z.string().describe("A theme for the day, like 'Cultural Immersion' or 'Relaxation & Rejuvenation'."),
     activities: z.array(z.object({
       name: z.string().describe("The descriptive name of the activity, e.g., 'Morning Visit to the Louvre Museum'."),
-      searchableName: z.string().describe("A Google Maps-friendly searchable name for the activity, e.g., 'Musée du Louvre, Paris, France'."),
       description: z.string().describe("A brief, engaging description of the activity."),
-      emoji: z.string().describe("An emoji that represents the activity.")
+      emoji: z.string().describe("An emoji that represents the activity."),
+      address: z.string().describe("The full, verifiable street address of the location. This is critical for mapping and must be accurate."),
     })),
     restaurants: z.array(z.object({
       name: z.string().describe("The name of the restaurant."),
-      searchableName: z.string().describe("A Google Maps-friendly searchable name for the restaurant, e.g., 'Le Procope, Paris, France'."),
       description: z.string().describe("A brief, engaging description of the restaurant's atmosphere and cuisine."),
-      emoji: z.string().describe("An emoji that represents the restaurant.")
+      emoji: z.string().describe("An emoji that represents the restaurant."),
+      address: z.string().describe("The full, verifiable street address of the restaurant. This is critical for mapping and must be accurate."),
     }))
   })).describe("An array of daily plans."),
   soulQuote: z.string().optional().describe("An inspirational quote that matches the trip's vibe.")
@@ -40,33 +40,19 @@ export async function POST(req: Request) {
 
     // Construct the prompt
     const prompt = `
-      You are a mystical Journey Oracle. Based on the following soul profile, craft a personalized, magical, and practical travel itinerary.
+      You are a world-class, creative, and thoughtful travel agent AI.
+      Your mission is to generate a structured JSON itinerary based on a user's "soul profile".
+      This itinerary must be not only practical but also deeply resonant with the user's stated personality, mood, and intentions.
 
-      **Soul Profile:**
-      - **Archetype:** ${soulProfile.archetype.label} (${soulProfile.archetype.description})
-      - **Current Mood:** ${soulProfile.mood.label} (${soulProfile.mood.description})
-      - **Journey Philosophy:** ${soulProfile.philosophy}
-      - **Intention:** ${soulProfile.intention}
-      - **Desired Destinations/Vibes:** ${soulProfile.destinations.join(", ")}
+      **CRITICAL INSTRUCTIONS:**
+      1.  For every single 'activity' and 'restaurant', you MUST provide a real, verifiable street address. The user will use this address to find the location on a map.
+      2.  The name and address should correspond to a real-world location. Do not invent places.
+      3.  The ENTIRE itinerary MUST take place within the user's specified 'destination'. Do not suggest locations in other cities.
+      4.  Your entire response must be a raw JSON object that strictly follows the schema. Do not include any text before or after the JSON object.
 
-      **Practical Details:**
-      - **Destination:** ${soulProfile.practical.destination}
-      - **Travel Dates:** From ${soulProfile.practical.startDate} to ${soulProfile.practical.endDate}
-      - **Budget:** ${soulProfile.practical.budget}
-      - **Companions:** ${soulProfile.practical.companions}
-      - **Additional Prompt:** ${soulProfile.practical.additionalPrompt || "None"}
-
-      **Your Mission:**
-      Generate a structured JSON itinerary that brings this journey to life. The tone should be inspiring and aligned with the user's soul profile. Be creative and thoughtful. Ensure the dates in the daily itinerary correctly correspond to the travel dates provided.
-
-      For each activity and restaurant, you MUST provide two names:
-      1. A descriptive, human-readable 'name' (e.g., 'Explore the historic Montmartre district').
-      2. A 'searchableName' that is optimized for a Google Maps search (e.g., 'Montmartre, Paris, France').
-      
-      Generate nothing but the raw JSON object. Do not include any introductory text, closing text, or markdown formatting.
-      Your entire response must be the JSON object that strictly follows the schema.
-
-      Here is the user's soul profile:
+      Here is the user's soul profile, which includes the destination:
+      \`\`\`json
+      ${JSON.stringify(soulProfile, null, 2)}
     `
     
     // Generate the structured object

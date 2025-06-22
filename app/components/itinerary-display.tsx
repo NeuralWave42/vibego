@@ -22,14 +22,18 @@ import {
   Map,
   LayoutList,
   MapPin,
+  CheckCircle2,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DAY_COLOR_SCHEMES } from "./constants"
 
 interface ItineraryDisplayProps {
-  soulProfile: any
+  soulProfile: any;
+  completedItems: Set<string>;
+  onToggleComplete: (itemId: string) => void;
 }
 
-export default function ItineraryDisplay({ soulProfile }: ItineraryDisplayProps) {
+export default function ItineraryDisplay({ soulProfile, completedItems, onToggleComplete }: ItineraryDisplayProps) {
   const [itinerary, setItinerary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -120,16 +124,16 @@ export default function ItineraryDisplay({ soulProfile }: ItineraryDisplayProps)
                 <span className="text-4xl">{soulProfile.archetype.emoji}</span>
                 <div>
                   <CardTitle className="text-3xl font-bold text-gray-800">
-                    {itinerary.title || `Your Perfect ${itinerary.destination} Adventure`}
+                    {itinerary.tripTitle}
                   </CardTitle>
                   <CardDescription className="text-lg flex items-center gap-4 mt-2">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      {itinerary.duration}
+                      {itinerary.dailyItinerary.length} days
                     </span>
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
-                      {itinerary.totalBudget}
+                      {soulProfile.practical.budget}
                     </span>
                     <span className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
@@ -137,34 +141,6 @@ export default function ItineraryDisplay({ soulProfile }: ItineraryDisplayProps)
                     </span>
                   </CardDescription>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={activeTab === 'itinerary' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('itinerary')}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Itinerary
-                </Button>
-                <Button
-                  variant={activeTab === 'map' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveTab('map')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Map className="h-4 w-4 mr-2" />
-                  Map View
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-                <Button size="sm" className="bg-red-500 hover:bg-red-600">
-                  <Heart className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
               </div>
             </div>
           </CardHeader>
@@ -177,73 +153,104 @@ export default function ItineraryDisplay({ soulProfile }: ItineraryDisplayProps)
           </TabsList>
           <TabsContent value="itinerary">
             <div className="space-y-8 mt-4">
-              {itinerary.dailyItinerary.map((day: any) => (
-                <Card key={day.day} className="border-0 shadow-lg bg-white/90 backdrop-blur-sm overflow-hidden">
-                  <CardHeader className="bg-gray-50/50">
-                    <CardTitle className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {day.day}
-                      </div>
+              {itinerary.dailyItinerary.map((day: any) => {
+                const colorScheme = DAY_COLOR_SCHEMES[(day.day - 1) % DAY_COLOR_SCHEMES.length];
+                return (
+                  <Card key={day.day} className="border-0 shadow-lg bg-white/90 backdrop-blur-sm overflow-hidden">
+                    <CardHeader className="bg-gray-50/50">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className={`w-10 h-10 ${colorScheme.circle} rounded-full flex items-center justify-center text-white font-bold`}>
+                          {day.day}
+                        </div>
+                        <div>
+                          <span className="text-xl">Day {day.day}</span>
+                          <p className="text-sm text-gray-600 font-normal">{day.theme}</p>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
                       <div>
-                        <span className="text-xl">Day {day.day}</span>
-                        <p className="text-sm text-gray-600 font-normal">{day.theme}</p>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
+                          <Navigation className="h-4 w-4" />
+                          Activities
+                        </h4>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {day.activities.map((activity: any, index: number) => {
+                             const itemId = `item-${day.day}-${index}`;
+                             const isCompleted = completedItems.has(itemId);
+                              return (
+                               <div key={itemId} className="p-4 border rounded-lg hover:shadow-md transition-all bg-white relative">
+                                 <div className={`transition-opacity ${isCompleted ? 'opacity-50' : 'opacity-100'}`}>
+                                   <div className="flex items-start gap-3">
+                                     <span className="text-2xl mt-1">{activity.emoji}</span>
+                                  <div className="flex-1">
+                                    <h5 className="font-semibold">{activity.name}</h5>
+                                    <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                                     </div>
+                                   </div>
+                                  </div>
+                                 <button
+                                   onClick={() => onToggleComplete(itemId)}
+                                   className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                   aria-label={isCompleted ? 'Mark as not completed' : 'Mark as completed'}
+                                 >
+                                   <CheckCircle2 className={`w-6 h-6 transition-colors ${isCompleted ? 'text-green-500 fill-green-100' : 'text-gray-300 hover:text-gray-400'}`} />
+                                 </button>
+                                </div>
+                              )
+                          })}
+                        </div>
                       </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-6">
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
-                        <Navigation className="h-4 w-4" />
-                        Activities
-                      </h4>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {day.activities.map((activity: any, index: number) => (
-                          <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow bg-white">
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl mt-1">{activity.emoji}</span>
-                              <div className="flex-1">
-                                <h5 className="font-semibold">{activity.name}</h5>
-                                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
 
-                    <Separator />
+                      <Separator />
 
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
-                        <Utensils className="h-4 w-4" />
-                        Dining
-                      </h4>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {day.restaurants.map((restaurant: any, index: number) => (
-                          <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow bg-white">
-                            <div className="flex items-start gap-3">
-                              <span className="text-2xl mt-1">{restaurant.emoji}</span>
-                              <div className="flex-1">
-                                <h5 className="font-semibold">{restaurant.name}</h5>
-                                <p className="text-sm text-gray-600 mt-1">{restaurant.description}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
+                          <Utensils className="h-4 w-4" />
+                          Dining
+                        </h4>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {day.restaurants.map((restaurant: any, index: number) => {
+                             const activityCount = day.activities.length;
+                             const itemId = `item-${day.day}-${activityCount + index}`;
+                             const isCompleted = completedItems.has(itemId);
+                              return (
+                               <div key={itemId} className="p-4 border rounded-lg hover:shadow-md transition-all bg-white relative">
+                                 <div className={`transition-opacity ${isCompleted ? 'opacity-50' : 'opacity-100'}`}>
+                                   <div className="flex items-start gap-3">
+                                     <span className="text-2xl mt-1">{restaurant.emoji}</span>
+                                  <div className="flex-1">
+                                    <h5 className="font-semibold">{restaurant.name}</h5>
+                                    <p className="text-sm text-gray-600 mt-1">{restaurant.description}</p>
+                                     </div>
+                                   </div>
+                                  </div>
+                                 <button
+                                   onClick={() => onToggleComplete(itemId)}
+                                   className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                   aria-label={isCompleted ? 'Mark as not completed' : 'Mark as completed'}
+                                 >
+                                   <CheckCircle2 className={`w-6 h-6 transition-colors ${isCompleted ? 'text-green-500 fill-green-100' : 'text-gray-300 hover:text-gray-400'}`} />
+                                 </button>
+                                </div>
+                              )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </TabsContent>
           <TabsContent value="map">
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm mt-4">
               <CardHeader>
                 <CardTitle>Journey Map View</CardTitle>
+                <CardDescription>A bird's eye view of your spiritual quest.</CardDescription>
               </CardHeader>
               <CardContent>
-                <JourneyMapView itinerary={itinerary} />
+                <JourneyMapView itinerary={itinerary} completedItems={completedItems} />
               </CardContent>
             </Card>
           </TabsContent>

@@ -2,17 +2,11 @@
 
 import { useEffect, useState, memo } from 'react';
 import { APIProvider, Map, AdvancedMarker, useMap, InfoWindow } from '@vis.gl/react-google-maps';
-
-const DAY_COLOR_SCHEMES = [
-  { gradient: 'from-blue-500 to-cyan-500', arrow: 'border-t-blue-600' },
-  { gradient: 'from-green-500 to-teal-500', arrow: 'border-t-green-600' },
-  { gradient: 'from-purple-500 to-violet-500', arrow: 'border-t-purple-600' },
-  { gradient: 'from-red-500 to-orange-500', arrow: 'border-t-red-600' },
-  { gradient: 'from-pink-500 to-rose-500', arrow: 'border-t-pink-600' }
-];
+import { DAY_COLOR_SCHEMES } from './constants';
 
 interface JourneyMapViewProps {
   itinerary: any;
+  completedItems: Set<string>;
 }
 
 interface Pin {
@@ -54,7 +48,7 @@ const MapController = ({ pins }: { pins: Pin[] }) => {
   return null;
 }
 
-export default function JourneyMapView({ itinerary }: JourneyMapViewProps) {
+export default function JourneyMapView({ itinerary, completedItems }: JourneyMapViewProps) {
   const [pins, setPins] = useState<Pin[]>([]);
   const [loading, setLoading] = useState(true);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
@@ -67,16 +61,18 @@ export default function JourneyMapView({ itinerary }: JourneyMapViewProps) {
       setLoading(true);
 
       try {
-        const destResponse = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(itinerary.destination)}&key=${apiKey}`);
+        const destResponse = await fetch(`/api/geocode?address=${encodeURIComponent(itinerary.destination)}`);
         const destData = await destResponse.json();
-        if (destData.status === 'OK' && destData.results[0]) {
-          setCenter(destData.results[0].geometry.location);
+        if (!destData.error && destData.geometry) {
+          setCenter(destData.geometry.location);
+        } else {
+          console.error('Could not geocode destination:', destData.error || 'Unknown error');
         }
       } catch (error) {
         console.error('Error geocoding destination:', error);
       }
 
-      const locationsToGeocode: { name: string, searchableName: string, description: string, day: number }[] = [];
+      const locationsToGeocode: { name: string, description: string, address: string, day: number }[] = [];
       itinerary.dailyItinerary.forEach((day: any) => {
         day.activities.forEach((act: any) => locationsToGeocode.push({ ...act, day: day.day }));
         day.restaurants.forEach((res: any) => locationsToGeocode.push({ ...res, day: day.day }));
@@ -84,17 +80,24 @@ export default function JourneyMapView({ itinerary }: JourneyMapViewProps) {
       
       const geocodedPins: Pin[] = [];
       for (const location of locationsToGeocode) {
+        const pinId = `item-${location.day}-${locationsToGeocode.indexOf(location)}`;
+        if (completedItems.has(pinId)) {
+          continue; 
+        }
+
         try {
-          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location.searchableName)}&key=${apiKey}`);
+          const response = await fetch(`/api/geocode?address=${encodeURIComponent(location.address)}`);
           const data = await response.json();
-          if (data.status === 'OK' && data.results[0]) {
+          if (!data.error && data.geometry) {
             geocodedPins.push({
-              key: location.name,
-              position: data.results[0].geometry.location,
+              key: pinId,
+              position: data.geometry.location,
               label: location.name,
               description: location.description,
               day: location.day,
             });
+          } else {
+            console.warn(`Could not geocode location ${location.name}: ${data.error || 'Unknown error'}`);
           }
         } catch (error) {
           console.error(`Error geocoding ${location.name}:`, error);
@@ -106,7 +109,7 @@ export default function JourneyMapView({ itinerary }: JourneyMapViewProps) {
     };
 
     geocodeLocations();
-  }, [itinerary, apiKey]);
+  }, [itinerary, apiKey, completedItems]);
 
   if (!apiKey) return <div className="p-4 text-center">Error: API key missing.</div>;
   if (loading || !center) return <div className="h-[500px] flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
