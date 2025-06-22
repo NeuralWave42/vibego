@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Sparkles, Star, Heart, Compass } from "lucide-react"
+import { ArrowRight, Sparkles, Star, Heart, Compass, ArrowLeft } from "lucide-react"
 import { oracleSteps } from "@/lib/oracle-data"
 
 type FormData = {
@@ -24,9 +24,10 @@ type FormData = {
 
 interface PreDepartureOracleProps {
   onComplete: (answers: any) => void
+  onBack?: () => void
 }
 
-export default function PreDepartureOracle({ onComplete }: PreDepartureOracleProps) {
+export default function PreDepartureOracle({ onComplete, onBack }: PreDepartureOracleProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>({
     archetype: "",
@@ -106,6 +107,17 @@ export default function PreDepartureOracle({ onComplete }: PreDepartureOraclePro
     return (
       <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 ${getMoodBackground()} transition-all duration-1000`}>
         <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen">
+          {onBack && (
+            <Button
+              onClick={onBack}
+              variant="ghost"
+              className="absolute top-8 left-8 text-purple-300 hover:text-white hover:bg-white/10 z-20"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          )}
+          
           <Card className="w-full max-w-3xl border border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl">
             <CardHeader className="text-center pb-6">
               <div className="flex items-center justify-center gap-2 mb-4">
@@ -224,6 +236,28 @@ export default function PreDepartureOracle({ onComplete }: PreDepartureOraclePro
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 ${getMoodBackground()} transition-all duration-1000`}>
       <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen">
+        {onBack && currentStep === 0 && (
+          <Button
+            onClick={onBack}
+            variant="ghost"
+            className="absolute top-8 left-8 text-purple-300 hover:text-white hover:bg-white/10 z-20"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        )}
+        
+        {currentStep > 0 && (
+          <Button
+            onClick={() => setCurrentStep(prev => prev - 1)}
+            variant="ghost"
+            className="absolute top-8 left-8 text-purple-300 hover:text-white hover:bg-white/10 z-20"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Previous
+          </Button>
+        )}
+        
         <Card className="w-full max-w-4xl border border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl">
           <CardHeader className="text-center pb-6">
             <div className="flex items-center justify-center gap-2 mb-4">

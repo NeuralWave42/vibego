@@ -20,14 +20,17 @@ import {
   Calendar,
   Users,
   Star,
+  Plus,
+  ArrowLeft,
 } from "lucide-react"
 
 interface SharingRealmProps {
   journeyBlueprint: any
   soulProfile: any
+  onCreateNew?: () => void
 }
 
-export default function SharingRealm({ journeyBlueprint, soulProfile }: SharingRealmProps) {
+export default function SharingRealm({ journeyBlueprint, soulProfile, onCreateNew }: SharingRealmProps) {
   const [showQR, setShowQR] = useState(false)
   const [privacySettings, setPrivacySettings] = useState({
     hidePrivateLocations: false,
@@ -300,13 +303,26 @@ export default function SharingRealm({ journeyBlueprint, soulProfile }: SharingR
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <Badge className="px-6 py-2 text-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Journey Oracle Complete
               </Badge>
 
               <p className="text-sm text-purple-200">✨ Your soul's adventure begins now ✨</p>
+
+              {onCreateNew && (
+                <div className="pt-4">
+                  <Button
+                    onClick={onCreateNew}
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <Plus className="mr-2 h-5 w-5" />
+                    Create Another Journey
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

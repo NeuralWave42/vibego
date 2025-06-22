@@ -45,10 +45,11 @@ export async function POST(req: Request) {
       This itinerary must be not only practical but also deeply resonant with the user's stated personality, mood, and intentions.
 
       **CRITICAL INSTRUCTIONS:**
-      1.  For every single 'activity' and 'restaurant', you MUST provide a real, verifiable street address. The user will use this address to find the location on a map.
-      2.  The name and address should correspond to a real-world location. Do not invent places.
-      3.  The ENTIRE itinerary MUST take place within the user's specified 'destination'. Do not suggest locations in other cities.
-      4.  Your entire response must be a raw JSON object that strictly follows the schema. Do not include any text before or after the JSON object.
+      1. Your ENTIRE response MUST be a single, valid JSON object. Do not include any text, comments, or any characters outside of the JSON object.
+      2. Pay close attention to escaping characters within strings. For example, a quote inside a description should be escaped as \\".
+      3. For every single 'activity' and 'restaurant', you MUST provide a real, verifiable street address.
+      4. The name and address MUST correspond to a real-world location. Do not invent places.
+      5. The ENTIRE itinerary must take place within the user's specified 'destination'. Do not suggest locations in other cities.
 
       Here is the user's soul profile, which includes the destination:
       \`\`\`json
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
     
     // Generate the structured object
     const { object: itinerary } = await generateObject({
-      model: openai("gpt-4o-mini"),
+      model: openai("gpt-4o"),
       schema: ItinerarySchema,
       prompt,
     })
