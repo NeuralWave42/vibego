@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Sparkles, Moon, Sun, Stars, Heart } from "lucide-react"
 import PreDepartureOracle from "./components/pre-departure-oracle"
-import JourneyMap from "./components/journey-map"
+import ItineraryDisplay from "./components/itinerary-display"
 import SharingRealm from "./components/sharing-realm"
 
 export default function MysticalTripOracle() {
@@ -36,7 +36,7 @@ export default function MysticalTripOracle() {
   }
 
   if (currentRealm === "journey") {
-    return <JourneyMap soulProfile={soulProfile} onComplete={handleJourneyComplete} />
+    return <ItineraryDisplay soulProfile={soulProfile} />
   }
 
   if (currentRealm === "sharing") {
