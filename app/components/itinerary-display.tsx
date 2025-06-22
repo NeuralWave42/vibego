@@ -1,25 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import JourneyMapView from "./journey-map-view"
 import {
-  Clock,
   Star,
   Utensils,
-  Coffee,
   Sparkles,
-  Download,
   Share2,
   Heart,
   Navigation,
   Calendar,
   DollarSign,
   Users,
-  Map,
   LayoutList,
   MapPin,
   CheckCircle2,
@@ -41,6 +36,7 @@ interface ItineraryDisplayProps {
   onToggleComplete: (itemId: string) => void;
   onCreateNew?: () => void;
   onBack?: () => void;
+  existingItinerary?: any; // For saved journeys
 }
 
 interface ToastProps {
@@ -111,12 +107,13 @@ export default function ItineraryDisplay({
   completedItems, 
   onToggleComplete, 
   onCreateNew, 
-  onBack 
+  onBack,
+  existingItinerary 
 }: ItineraryDisplayProps) {
   const [itinerary, setItinerary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"itinerary" | "map">("itinerary")
+  // Remove unused state
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   
@@ -154,6 +151,7 @@ export default function ItineraryDisplay({
       await addDoc(collection(db, "users", user.uid, "journeys"), {
         ...itinerary,
         soulProfile,
+        completedItems: Array.from(completedItems),
         createdAt: serverTimestamp(),
       });
       showToast("Journey saved successfully! ✨", "success");
@@ -166,6 +164,14 @@ export default function ItineraryDisplay({
   };
 
   useEffect(() => {
+    // If we have an existing itinerary (saved journey), use it directly
+    if (existingItinerary) {
+      setItinerary(existingItinerary);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise, generate a new itinerary from soul profile
     const generateItinerary = async () => {
       if (!soulProfile) return
 
@@ -196,7 +202,7 @@ export default function ItineraryDisplay({
     }
 
     generateItinerary()
-  }, [soulProfile])
+  }, [soulProfile, existingItinerary])
 
   if (loading) {
     return (
@@ -204,8 +210,15 @@ export default function ItineraryDisplay({
         <Card className="w-full max-w-md border-0 shadow-xl bg-white/90 backdrop-blur-sm">
           <CardContent className="text-center py-12">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-6"></div>
-            <h3 className="text-xl font-semibold mb-2">Creating Your Perfect Itinerary</h3>
-            <p className="text-gray-600">Our AI is analyzing your personality and preferences...</p>
+            <h3 className="text-xl font-semibold mb-2">
+              {existingItinerary ? "Loading Your Saved Journey" : "Creating Your Perfect Itinerary"}
+            </h3>
+            <p className="text-gray-600">
+              {existingItinerary 
+                ? "Retrieving your mystical adventure..." 
+                : "Our AI is analyzing your personality and preferences..."
+              }
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -275,8 +288,13 @@ export default function ItineraryDisplay({
               <div className="flex items-center gap-4">
                 <span className="text-4xl">{soulProfile.archetype.emoji}</span>
                 <div>
-                  <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800">
+                  <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2">
                     {itinerary.tripTitle}
+                    {existingItinerary && (
+                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                        Saved Journey
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-base sm:text-lg flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                     <span className="flex items-center gap-1">
@@ -601,9 +619,11 @@ export default function ItineraryDisplay({
         {/* Footer Actions */}
         <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
           <CardContent className="text-center py-6 sm:py-8">
-            <h3 className="text-lg sm:text-xl font-semibold mb-4">Ready for Your Adventure?</h3>
+            <h3 className="text-lg sm:text-xl font-semibold mb-4">
+              {existingItinerary ? "Continue Your Adventure" : "Ready for Your Adventure?"}
+            </h3>
             <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-              {user && (
+              {user && !existingItinerary && (
                 <Button
                   size="lg"
                   onClick={handleSaveJourney}
@@ -614,13 +634,6 @@ export default function ItineraryDisplay({
                   {isSaving ? "Saving..." : "Save Journey"}
                 </Button>
               )}
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Itinerary
-              </Button>
               <Button variant="outline" size="lg">
                 <Share2 className="mr-2 h-4 w-4" />
                 Share
@@ -646,7 +659,7 @@ export default function ItineraryDisplay({
                   className="hover:bg-gray-50 hover:border-gray-300"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Quiz
+                  {existingItinerary ? "Back to My Journeys" : "Back to Quiz"}
                 </Button>
               )}
             </div>
