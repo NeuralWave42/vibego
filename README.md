@@ -25,24 +25,19 @@
 ## 🖼️ Demo Images & App Showcase
 
 ### Core User Journey
-| Landing Page | The Oracle Quiz | AI Generation |
+| Landing Page | Sign In | Oracle Quiz |
 | :-------------: | :-------------: | :-------------: |
-| ![Landing Page](public/screenshots/01-landing.png) | ![The Oracle Quiz](public/screenshots/02-quiz.png) | ![AI Generation](public/screenshots/03-generation.png) |
+| ![Landing Page](public/screenshots/01-landing.jpeg) | ![Sign In](public/screenshots/02-sign.jpeg) | ![Oracle Quiz](public/screenshots/02-quiz.jpeg) |
 
-### Rich Itinerary Experience
-| Generated Itinerary | Completion Tracking | Map Integration |
+### Travel Planning Experience
+| Logistics Setup | Generated Itinerary | Map Integration |
 | :-------------: | :-------------: | :-------------: |
-| ![Generated Itinerary](public/screenshots/04-itinerary.png) | ![Completion Tracking](public/screenshots/05-completion.png) | ![Map Integration](public/screenshots/06-map.png) |
+| ![Logistics](public/screenshots/03-logistics.jpeg) | ![Generated Itinerary](public/screenshots/04-itenerary.jpeg) | ![Map View](public/screenshots/05-map.jpeg) |
 
-### Saved Journeys & Progress
-| Saved Journeys List | Progress Bars | Mystical Themes |
-| :-------------: | :-------------: | :-------------: |
-| ![Saved Journeys](public/screenshots/07-journeys-list.png) | ![Progress Tracking](public/screenshots/08-progress.png) | ![Mystical Themes](public/screenshots/09-themes.png) |
-
-### Mobile Experience
-| Mobile Quiz | Mobile Itinerary | Mobile Map |
-| :-------------: | :-------------: | :-------------: |
-| ![Mobile Quiz](public/screenshots/10-mobile-quiz.png) | ![Mobile Itinerary](public/screenshots/11-mobile-itinerary.png) | ![Mobile Map](public/screenshots/12-mobile-map.png) |
+### Saved Journeys
+| Saved Journeys List |
+| :-------------: |
+| ![Saved Journeys](public/screenshots/06-saved-journeys.jpeg) |
 
 ## 🔮 The Concept: From Chore to Quest
 
